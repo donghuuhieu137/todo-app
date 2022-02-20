@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package todo;
+
+import "google/api/annotations.proto";
+
+option go_package = "todo-app/proto/todo";
+
+message Todo{
+	int32 id = 1;
+	string name = 2;
+	string content = 3;
+}
+
+message GetResponse {
+  repeated Todo todos = 1;
+}
+
+message Nil {}
+
+service TodoService {
+  rpc Get(Nil) returns (GetResponse){
+    option (google.api.http) = {
+      get: "/api/todo"
+    };
+  }
+  rpc GetById(Todo) returns (Todo){
+    option (google.api.http) = {
+      get: "/api/todo/{id}"
+    };
+  }
+  rpc Create(Todo) returns (Todo){
+    option (google.api.http) = {
+      post: "/api/todo"
+      body: "*"
+    };
+  }
+  rpc Update(Todo) returns (Todo){
+    option (google.api.http) = {
+      put: "/api/todo"
+      body: "*"
+    };
+  }
+  rpc Delete(Todo) returns (Todo){
+    option (google.api.http) = {
+      delete: "/api/todo/{id}"
+    };
+  }
+   
+}
