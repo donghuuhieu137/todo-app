@@ -2,7 +2,8 @@ package handlers
 
 import (
 	"context"
-	"todo-app/data"
+	"fmt"
+	"todo-app/models"
 	"todo-app/proto/todo"
 
 	"google.golang.org/grpc/codes"
@@ -12,59 +13,84 @@ import (
 type TodoInteractor interface {
 	Get(ctx context.Context, in *todo.Nil) (*todo.GetResponse, error)
 	GetById(ctx context.Context, in *todo.Todo) (*todo.Todo, error)
-	Create(ctx context.Context, in *todo.Todo) (*todo.Todo, error)
-	Update(ctx context.Context, in *todo.Todo) (*todo.Todo, error)
-	Delete(ctx context.Context, in *todo.Todo) (*todo.Todo, error)
+	Create(ctx context.Context, in *todo.Todo) (*todo.ResponseDto, error)
+	Update(ctx context.Context, in *todo.Todo) (*todo.ResponseDto, error)
+	Delete(ctx context.Context, in *todo.Todo) (*todo.ResponseDto, error)
 }
 
 func (h *Handler) Get(ctx context.Context, in *todo.Nil) (*todo.GetResponse, error) {
 	res := []*todo.Todo{}
-	for _, element := range data.Todos {
-		appendTodo := toProtoToDo(&element)
+	array := models.Get()
+	for _, element := range array {
+		appendTodo := toProtoToDo(element)
 		res = append(res, appendTodo)
 	}
-	ans := todo.GetResponse{Todos: res}
+	ans := todo.GetResponse{
+		Status:  200,
+		Message: "Success",
+		Data:    res,
+	}
 	return &ans, nil
 }
 func (h *Handler) GetById(ctx context.Context, payload *todo.Todo) (*todo.Todo, error) {
-	for _, element := range data.Todos {
-		if element.Id == payload.Id {
-			return toProtoToDo(&element), nil
-		}
+	todoModel, err := models.GetById(payload.Id)
+	if err != nil {
+		fmt.Println(err)
+		return nil, status.Error(codes.Internal, "Fail to get todo")
 	}
-	return nil, status.Error(codes.InvalidArgument, "Id not found !!!")
+	todo := toProtoToDo(todoModel)
+	return todo, nil
 }
-func (h *Handler) Create(ctx context.Context, payload *todo.Todo) (*todo.Todo, error) {
-	data.Todos = append(data.Todos, *payload)
-	return payload, nil
-}
-func (h *Handler) Update(ctx context.Context, payload *todo.Todo) (*todo.Todo, error) {
-	for index, element := range data.Todos {
-		if element.Id == payload.Id {
-			data.Todos[index] = *payload
-			return payload, nil
-		}
+func (h *Handler) Create(ctx context.Context, payload *todo.Todo) (*todo.ResponseDto, error) {
+	fmt.Println(payload)
+	ci := toModelToDo(payload)
+	err := models.Create(ci)
+	if err != nil {
+		fmt.Println(err)
+		return nil, status.Error(codes.Internal, "Create fail !!!")
 	}
-	return nil, status.Error(codes.Internal, "Update fail !!!")
-}
-func (h *Handler) Delete(ctx context.Context, payload *todo.Todo) (*todo.Todo, error) {
-	for index, element := range data.Todos {
-		if element.Id == payload.Id {
-			data.Todos = removeIndex(data.Todos, int(index))
-			return payload, nil
-		}
+	ans := &todo.ResponseDto{
+		Status:  200,
+		Message: "Success",
 	}
-	return nil, status.Error(codes.InvalidArgument, "Id not found !!!")
+	return ans, nil
 }
-func removeIndex(slice []todo.Todo, s int) []todo.Todo {
-	ret := make([]todo.Todo, 0)
-	ret = append(ret, slice[:s]...)
-	return append(ret, slice[s+1:]...)
+func (h *Handler) Update(ctx context.Context, payload *todo.Todo) (*todo.ResponseDto, error) {
+	result := models.Update(payload)
+	if result != nil {
+		fmt.Println(result)
+		return nil, status.Error(codes.Internal, "Update fail !!!")
+	}
+	ans := todo.ResponseDto{
+		Status:  200,
+		Message: "Success",
+	}
+	return &ans, nil
 }
-func toProtoToDo(payload *todo.Todo) *todo.Todo {
+func (h *Handler) Delete(ctx context.Context, payload *todo.Todo) (*todo.ResponseDto, error) {
+	fmt.Println(payload)
+	result := models.Delete(payload)
+	if result != nil {
+		fmt.Println(result)
+		return nil, status.Error(codes.InvalidArgument, "Delete fail !!!")
+	}
+	ans := todo.ResponseDto{
+		Status:  200,
+		Message: "Success",
+	}
+	return &ans, nil
+}
+func toProtoToDo(payload *models.Todo) *todo.Todo {
 	return &todo.Todo{
-		Id:      payload.GetId(),
-		Name:    payload.GetName(),
-		Content: payload.GetContent(),
+		Id:      payload.Id,
+		Name:    payload.Name,
+		Content: payload.Content,
+	}
+}
+func toModelToDo(payload *todo.Todo) *models.Todo {
+	return &models.Todo{
+		Id:      payload.Id,
+		Name:    payload.Name,
+		Content: payload.Content,
 	}
 }

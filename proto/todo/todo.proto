@@ -12,8 +12,15 @@ message Todo{
 	string content = 3;
 }
 
+message ResponseDto{
+  int32 status = 1;
+  string message = 2;
+}
+
 message GetResponse {
-  repeated Todo todos = 1;
+  int32 status = 1;
+  string message = 2;
+  repeated Todo data = 3;
 }
 
 message Nil {}
@@ -29,19 +36,19 @@ service TodoService {
       get: "/api/todo/{id}"
     };
   }
-  rpc Create(Todo) returns (Todo){
+  rpc Create(Todo) returns (ResponseDto){
     option (google.api.http) = {
       post: "/api/todo"
       body: "*"
     };
   }
-  rpc Update(Todo) returns (Todo){
+  rpc Update(Todo) returns (ResponseDto){
     option (google.api.http) = {
       put: "/api/todo"
       body: "*"
     };
   }
-  rpc Delete(Todo) returns (Todo){
+  rpc Delete(Todo) returns (ResponseDto){
     option (google.api.http) = {
       delete: "/api/todo/{id}"
     };
